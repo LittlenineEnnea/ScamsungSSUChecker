@@ -17,7 +17,8 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Sign via jarsigner in CI; for local builds add keystore.properties
+            signingConfig null
         }
     }
 

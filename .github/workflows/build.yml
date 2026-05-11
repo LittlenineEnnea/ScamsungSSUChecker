@@ -36,30 +36,44 @@ jobs:
       - name: Build release APK (arm64-v8a)
         run: ./gradlew assembleRelease -Pandroid.injected.build.abi=arm64-v8a
 
-      - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_apk
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: "34.0.0"
+      - name: List APK output (debug)
+        run: find app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > keystore.jks
+
+      - name: Sign APK with jarsigner
+        run: |
+          APK=$(find app/build/outputs/apk -name "*.apk" | head -1)
+          echo "Signing: $APK"
+          jarsigner \
+            -keystore keystore.jks \
+            -storepass "${{ secrets.KEY_STORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            -signedjar app-release-signed.apk \
+            "$APK" \
+            "${{ secrets.KEY_ALIAS }}"
+
+      - name: Verify signature
+        run: jarsigner -verify app-release-signed.apk
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
           name: SSUCheck-arm64-signed
-          path: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          path: app-release-signed.apk
           retention-days: 30
 
       - name: Create Release on tag
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          files: app-release-signed.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup keystore
+        if: always()
+        run: rm -f keystore.jks
