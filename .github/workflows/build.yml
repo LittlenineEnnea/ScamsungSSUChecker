@@ -39,18 +39,14 @@ jobs:
           android.enableR8.fullMode=false
           PROPS
 
-      - name: Build release APK (arm64-v8a)
-        run: |
-          ./gradlew assembleRelease \
-            -Pandroid.injected.build.abi=arm64-v8a \
-            --no-daemon \
-            --stacktrace
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Find APK
         id: find_apk
         run: |
           echo "=== All build outputs ==="
-          find app/build/outputs -type f 2>/dev/null || echo "outputs dir not found"
+          find app/build/outputs -type f 2>/dev/null || echo "No outputs"
           APK=$(find app/build/outputs -name "*.apk" -type f | head -1)
           if [ -z "$APK" ]; then
             echo "ERROR: No APK found"
