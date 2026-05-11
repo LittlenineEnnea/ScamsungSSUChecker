@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SSU Check</string>
+    <string name="btn_check">检测</string>
+    <string name="btn_github">GitHub</string>
+    <string name="btn_guide">说明</string>
+    <string name="lang_english">English</string>
+    <string name="lang_chinese">简体中文</string>
+    <string name="section_device">设备信息</string>
+    <string name="section_ssu">SSU</string>
+    <string name="section_knox">KNOX</string>
+    <string name="show_raw">显示原始 prop 值</string>
+    <string name="raw_title">── 原始 PROPS ──</string>
+    <string name="footer">通过 getprop 读取系统属性 · 无需 Root / ADB</string>
+
+    <!-- Guide dialog -->
+    <string name="guide_title">什么是 SSU？</string>
+    <string name="guide_body">SSU（Service Software Unlock，服务软件解锁）是三星的区域 SIM 卡锁临时解锁机制，由三星授权，允许锁定至特定运营商或地区的设备使用受支持地区的 SIM 卡。\n\n⚠️ SSU 不是永久解锁。设备随时可能被重新锁定——系统更新、恢复出厂设置或三星远程撤销授权后均会触发。\n\nSSU 仅允许使用解锁时签名所对应地区的 SIM 卡，使用不受支持地区的 SIM 卡仍可能被拒绝。\n\n✅ No SSU 表示设备没有区域 SIM 卡锁，可自由使用任何兼容的 SIM 卡。</string>
+    <string name="guide_close">知道了</string>
+</resources>

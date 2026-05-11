@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme, used on all API levels -->
+    <style name="Theme.SSUCheck" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#58A6FF</item>
+        <item name="colorPrimaryVariant">#388BFD</item>
+        <item name="colorOnPrimary">#0D1117</item>
+        <item name="android:windowBackground">#0D1117</item>
+        <item name="android:statusBarColor">#0D1117</item>
+        <item name="android:navigationBarColor">#0D1117</item>
+    </style>
+</resources>

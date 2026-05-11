@@ -1,0 +1,24 @@
+# Gradle cache (keep gradlew, gradlew.bat, gradle/wrapper/)
+.gradle/
+build/
+**/build/
+
+# Local config (generated per machine)
+local.properties
+gradle.properties
+
+# Android Studio / IntelliJ
+*.iml
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore (NEVER commit)
+*.jks
+*.keystore
+
+# APK / AAB outputs
+*.apk
+*.aab

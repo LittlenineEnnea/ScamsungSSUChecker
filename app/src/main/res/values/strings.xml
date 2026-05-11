@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SSU Check</string>
+    <string name="btn_check">CHECK</string>
+    <string name="btn_github">GitHub</string>
+    <string name="btn_guide">Guide</string>
+    <string name="lang_english">English</string>
+    <string name="lang_chinese">简体中文</string>
+    <string name="section_device">DEVICE INFO</string>
+    <string name="section_ssu">SSU</string>
+    <string name="section_knox">KNOX</string>
+    <string name="show_raw">Show original prop values</string>
+    <string name="raw_title">── RAW PROPS ──</string>
+    <string name="footer">Props read via getprop · No root / ADB required</string>
+
+    <!-- Guide dialog -->
+    <string name="guide_title">What is SSU?</string>
+    <string name="guide_body">SSU (Service Software Unlock) is Samsung\'s regional SIM lock temporary unlock mechanism, granted by Samsung to allow a locked device to use SIM cards from a supported region.\n\n⚠️ SSU is NOT permanent. Your device can be re-locked at any time — after an OTA update, factory reset, or remote revocation by Samsung.\n\nSSU only works with SIM cards from the region where the unlock was signed. Using a SIM from an unsupported region may still be blocked.\n\n✅ No SSU means your device has no regional SIM lock — it can be freely used with any compatible SIM card.</string>
+    <string name="guide_close">Got it</string>
+</resources>
