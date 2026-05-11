@@ -154,12 +154,14 @@ public class MainActivity extends AppCompatActivity {
         String keytype = getProp("ro.security.keystore.keytype");
 
         // SSU big indicator
-        if (!ssuStatus.isEmpty()) {
+        // ssu.support=1 → device has SSU lock → Locked
+        // ssu.support empty/missing → Global Unlocked
+        if (ssuSupport.equals("1")) {
             tvSsuBig.setText("🔒\nSSU Locked");
             tvSsuBig.setTextColor(0xFFFF6B6B);
             tvSsuBig.setBackgroundColor(0x22FF0000);
         } else {
-            tvSsuBig.setText("No SSU");
+            tvSsuBig.setText("✅\nGlobal Unlocked");
             tvSsuBig.setTextColor(0xFF3FB950);
             tvSsuBig.setBackgroundColor(0x00000000);
         }
