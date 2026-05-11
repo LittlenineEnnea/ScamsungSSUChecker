@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -29,34 +30,45 @@ jobs:
 
       - name: Write gradle.properties
         run: |
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
+          cat > gradle.properties << 'PROPS'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError
+          org.gradle.daemon=false
+          org.gradle.parallel=false
+          org.gradle.caching=false
+          android.enableR8.fullMode=false
+          PROPS
 
       - name: Build release APK (arm64-v8a)
-        run: ./gradlew assembleRelease -Pandroid.injected.build.abi=arm64-v8a
-
-      - name: List APK output (debug)
-        run: find app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
-
-      - name: Decode keystore
         run: |
-          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > keystore.jks
+          ./gradlew assembleRelease \
+            -Pandroid.injected.build.abi=arm64-v8a \
+            --no-daemon \
+            --stacktrace
 
-      - name: Sign APK with jarsigner
+      - name: Find APK
+        id: find_apk
         run: |
           APK=$(find app/build/outputs/apk -name "*.apk" | head -1)
-          echo "Signing: $APK"
+          echo "apk_path=$APK" >> $GITHUB_OUTPUT
+          echo "Found APK: $APK"
+
+      - name: Decode keystore
+        run: echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > keystore.jks
+
+      - name: Sign APK
+        run: |
           jarsigner \
             -keystore keystore.jks \
             -storepass "${{ secrets.KEY_STORE_PASSWORD }}" \
             -keypass "${{ secrets.KEY_PASSWORD }}" \
             -signedjar app-release-signed.apk \
-            "$APK" \
+            "${{ steps.find_apk.outputs.apk_path }}" \
             "${{ secrets.KEY_ALIAS }}"
 
       - name: Verify signature
-        run: jarsigner -verify app-release-signed.apk
+        run: jarsigner -verify app-release-signed.apk && echo "Signature OK"
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
