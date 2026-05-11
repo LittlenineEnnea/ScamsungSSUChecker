@@ -45,11 +45,10 @@ jobs:
       - name: Find APK
         id: find_apk
         run: |
-          echo "=== All build outputs ==="
-          find app/build/outputs -type f 2>/dev/null || echo "No outputs"
           APK=$(find app/build/outputs -name "*.apk" -type f | head -1)
           if [ -z "$APK" ]; then
             echo "ERROR: No APK found"
+            find app/build/outputs -type f 2>/dev/null || true
             exit 1
           fi
           echo "apk_path=$APK" >> $GITHUB_OUTPUT
@@ -58,15 +57,23 @@ jobs:
       - name: Decode keystore
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > keystore.jks
 
-      - name: Sign APK
+      - name: Sign APK with jarsigner
         run: |
           jarsigner \
             -keystore keystore.jks \
             -storepass "${{ secrets.KEY_STORE_PASSWORD }}" \
             -keypass "${{ secrets.KEY_PASSWORD }}" \
-            -signedjar app-release-signed.apk \
+            -signedjar app-release-signed-unaligned.apk \
             "${{ steps.find_apk.outputs.apk_path }}" \
             "${{ secrets.KEY_ALIAS }}"
+
+      - name: Zipalign APK
+        run: |
+          BUILD_TOOLS=$(ls $ANDROID_SDK_ROOT/build-tools/ | sort -V | tail -1)
+          echo "Using build-tools: $BUILD_TOOLS"
+          $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/zipalign -v -p 4 \
+            app-release-signed-unaligned.apk \
+            app-release-signed.apk
 
       - name: Verify signature
         run: jarsigner -verify app-release-signed.apk && echo "Signature OK"
@@ -87,6 +94,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cleanup keystore
+      - name: Cleanup
         if: always()
-        run: rm -f keystore.jks
+        run: rm -f keystore.jks app-release-signed-unaligned.apk
