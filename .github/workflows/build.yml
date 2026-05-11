@@ -57,26 +57,35 @@ jobs:
       - name: Decode keystore
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > keystore.jks
 
-      - name: Sign APK with jarsigner
-        run: |
-          jarsigner \
-            -keystore keystore.jks \
-            -storepass "${{ secrets.KEY_STORE_PASSWORD }}" \
-            -keypass "${{ secrets.KEY_PASSWORD }}" \
-            -signedjar app-release-signed-unaligned.apk \
-            "${{ steps.find_apk.outputs.apk_path }}" \
-            "${{ secrets.KEY_ALIAS }}"
-
-      - name: Zipalign APK
+      - name: Sign and align APK with apksigner
         run: |
           BUILD_TOOLS=$(ls $ANDROID_SDK_ROOT/build-tools/ | sort -V | tail -1)
+          APKSIGNER=$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/apksigner
+          ZIPALIGN=$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/zipalign
           echo "Using build-tools: $BUILD_TOOLS"
-          $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/zipalign -v -p 4 \
-            app-release-signed-unaligned.apk \
-            app-release-signed.apk
 
-      - name: Verify signature
-        run: jarsigner -verify app-release-signed.apk && echo "Signature OK"
+          # Zipalign first (required before apksigner)
+          $ZIPALIGN -v -p 4 \
+            "${{ steps.find_apk.outputs.apk_path }}" \
+            app-release-aligned.apk
+
+          # Sign with v1+v2+v3
+          $APKSIGNER sign \
+            --ks keystore.jks \
+            --ks-pass pass:"${{ secrets.KEY_STORE_PASSWORD }}" \
+            --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
+            --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out app-release-signed.apk \
+            app-release-aligned.apk
+
+      - name: Verify APK
+        run: |
+          BUILD_TOOLS=$(ls $ANDROID_SDK_ROOT/build-tools/ | sort -V | tail -1)
+          $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/apksigner verify \
+            --verbose app-release-signed.apk
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
@@ -96,4 +105,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f keystore.jks app-release-signed-unaligned.apk
+        run: rm -f keystore.jks app-release-aligned.apk
