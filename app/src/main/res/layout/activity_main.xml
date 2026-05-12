@@ -264,6 +264,13 @@
                         android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:textColor="#C9D1D9" android:textSize="12sp"
                         android:fontFamily="monospace"/>
+
+                    <TextView android:id="@+id/tv_ssu_warning"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textColor="#FFB300" android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginTop="6dp"
+                        android:visibility="gone"/>
                 </LinearLayout>
 
                 <!-- KNOX -->
