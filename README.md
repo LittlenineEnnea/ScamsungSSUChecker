@@ -12,18 +12,33 @@ English | [简体中文](#简体中文)
 
 > ⚠️ **SSU is not a permanent unlock.** Your device can be re-locked at any time — for example after a software update, factory reset, or when Samsung revokes the unlock remotely.
 
-### What does "No SSU" mean?
+### What does "No SSU / Global Unlocked" mean?
 
-If the app shows **No SSU**, it means the device either:
-- Was never locked to a specific region/carrier, or
-- Does not support the SSU mechanism
+If the app shows **Global Unlocked**, it means the device either:
+- Has a Carrier ID that is globally unlocked by default (XAA, CHM, CHN, CHC), or
+- Has no SSU lock mechanism present on the device
 
-This is generally a good sign — the device can be used freely with any compatible SIM card.
+The device can be used freely with any compatible SIM card.
+
+### ATT (AT&T) Devices — S25 Series and Earlier
+
+For Samsung devices with **Carrier ID = ATT** on models before the S26 series (S931, S936, S937, S938, F766, F966 prefix models such as SM-S931U), **SSU does not apply**. These devices use a different carrier lock mechanism that predates SSU.
+
+If you see **🤔 ATT Not Recognized**, you need to check your unlock status manually through AT&T or Samsung's official channels.
+
+### Chip Accuracy Notice
+
+| Chip | SSU Detection |
+|------|--------------|
+| SM8650 (Snapdragon 8 Gen 4) and newer | ✅ Accurate |
+| SM8550, SM8450, SM8350 | ⚠️ Not supported — insert foreign SIM to verify manually |
+| Exynos / MediaTek | ⚠️ Results may be inaccurate — warning shown in app |
+
+**SSU detection is confirmed accurate for SM8650 (Snapdragon 8 Gen 4) and newer chips.** For older chips and non-Qualcomm platforms, the app will display a warning.
 
 ### Important notes
 
 - SSU only allows usage with SIM cards **from the region/country where the unlock was signed**
-- Using a SIM from an unsupported region may still be blocked
 - Re-lock can happen silently after an OTA update
 - This app reads system properties via `getprop` — **no root or ADB required**
 
@@ -42,7 +57,7 @@ This is generally a good sign — the device can be used freely with any compati
 ./gradlew assembleDebug
 
 # Release APK (arm64)
-./gradlew assembleRelease -Pandroid.injected.build.abi=arm64-v8a
+./gradlew assembleRelease
 ```
 
 ---
@@ -55,18 +70,33 @@ This is generally a good sign — the device can be used freely with any compati
 
 > ⚠️ **SSU 不是永久解锁。** 设备随时可能被重新锁定——例如在系统更新、恢复出厂设置之后，或三星远程撤销解锁授权时。
 
-### "No SSU" 是什么意思？
+### "No SSU / 全球无锁"是什么意思？
 
-如果 App 显示 **No SSU**，表示该设备：
-- 从未被锁定至特定地区或运营商，或
-- 不支持 SSU 机制
+如果 App 显示 **全球无锁**，表示该设备：
+- 运营商 ID 属于默认全球无锁型号（XAA、CHM、CHN、CHC），或
+- 设备上不存在 SSU 锁定机制
 
-这通常是好事——设备可以自由使用任何兼容的 SIM 卡。
+设备可自由使用任何兼容的 SIM 卡。
+
+### ATT（AT&T）机型 — S25 系列及更早
+
+对于**运营商 ID = ATT**、型号在 S26 系列之前的三星设备（S931、S936、S937、S938、F766、F966 开头的型号，如 SM-S931U），**SSU 机制不适用**。这些设备使用早于 SSU 的不同运营商锁定方式。
+
+如果显示 **🤔 ATT 无法识别**，请通过 AT&T 或三星官方渠道手动查询解锁状态。
+
+### 芯片准确性说明
+
+| 芯片 | SSU 检测 |
+|------|----------|
+| SM8650（骁龙 8 Gen 4）及更新 | ✅ 准确 |
+| SM8550、SM8450、SM8350 | ⚠️ 不支持 — 请自行插入外国 SIM 卡验证 |
+| Exynos / 联发科 MTK | ⚠️ 结果可能不准确 — App 内会显示警告 |
+
+**SM8650（骁龙 8 Gen 4）及更新芯片的 SSU 检测已确认准确。** 旧芯片及非高通平台将显示警告提示。
 
 ### 重要说明
 
 - SSU 仅允许使用**解锁时签名所对应地区/国家**的 SIM 卡
-- 使用不受支持地区的 SIM 卡仍可能被拒绝
 - OTA 更新后可能在用户不知情的情况下被重新锁定
 - 本 App 通过 `getprop` 读取系统属性，**无需 Root 或 ADB**
 
@@ -85,5 +115,5 @@ This is generally a good sign — the device can be used freely with any compati
 ./gradlew assembleDebug
 
 # Release APK（arm64）
-./gradlew assembleRelease -Pandroid.injected.build.abi=arm64-v8a
+./gradlew assembleRelease
 ```

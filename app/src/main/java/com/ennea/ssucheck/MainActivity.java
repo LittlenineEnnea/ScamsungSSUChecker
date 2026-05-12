@@ -16,15 +16,33 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String PREF_NAME = "settings";
     private static final String PREF_LANG = "language";
 
+    // Carrier IDs that are always globally unlocked
+    private static final Set<String> GLOBAL_CARRIERS = new HashSet<>(Arrays.asList(
+            "XAA", "CHM", "CHN", "CHC"
+    ));
+
+    // Chips that do not support SSU prop detection
+    private static final Set<String> UNSUPPORTED_CHIPS = new HashSet<>(Arrays.asList(
+            "SM8350", "SM8450", "SM8550"
+    ));
+
+    // ATT model prefixes that predate S26 (no SSU mechanism)
+    private static final Set<String> ATT_SSU_MODELS = new HashSet<>(Arrays.asList(
+            "S931", "S936", "S937", "S938", "F766", "F966"
+    ));
+
     private TextView tvModel, tvSoc, tvHardware, tvCarrier;
-    private TextView tvSsuBig, tvSsuStatus, tvSsuSupport, tvSsuCount, tvSsuError;
+    private TextView tvSsuBig, tvSsuStatus, tvSsuSupport, tvSsuCount, tvSsuError, tvSsuWarning;
     private TextView tvKnoxStatus, tvKgState, tvKeystore;
     private TextView tvSectionDevice, tvSectionSsu, tvSectionKnox;
     private TextView tvFooter, tvLangLabel;
@@ -48,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         tvSsuSupport   = findViewById(R.id.tv_ssu_support);
         tvSsuCount     = findViewById(R.id.tv_ssu_count);
         tvSsuError     = findViewById(R.id.tv_ssu_error);
+        tvSsuWarning   = findViewById(R.id.tv_ssu_warning);
         tvKnoxStatus   = findViewById(R.id.tv_knox_status);
         tvKgState      = findViewById(R.id.tv_kg_state);
         tvKeystore     = findViewById(R.id.tv_keystore);
@@ -62,30 +81,145 @@ public class MainActivity extends AppCompatActivity {
         tvRawTitle     = findViewById(R.id.tv_raw_title);
         resultLayout   = findViewById(R.id.result_layout);
 
-        // Language button label
         tvLangLabel.setText(getCurrentLang().equals("zh") ? "中文" : "EN");
-
-        // Language button: show picker dialog
         findViewById(R.id.btn_lang).setOnClickListener(v -> showLangPicker());
-
-        // CHECK
         findViewById(R.id.btn_check).setOnClickListener(v -> runChecks());
-
-        // Guide
         findViewById(R.id.btn_guide).setOnClickListener(v -> showGuide());
-
-        // GitHub
         findViewById(R.id.btn_github).setOnClickListener(v ->
             startActivity(new Intent(Intent.ACTION_VIEW,
                 Uri.parse("https://github.com/LittlenineEnnea/ScamsungSSUChecker"))));
 
-        // Raw props checkbox
         cbRaw.setOnCheckedChangeListener((btn, checked) -> {
             rawLayout.setVisibility(checked ? View.VISIBLE : View.GONE);
             if (checked) tvRaw.setText(rawDump.isEmpty() ? "(no props found)" : rawDump);
         });
 
         updateStringViews();
+    }
+
+    private void runChecks() {
+        String model    = Build.MODEL + " (" + Build.DEVICE + ")";
+        String soc      = getProp("ro.soc.model");
+        String hardware = getProp("ro.hardware");
+        String carrier  = getProp("ro.boot.carrierid");
+
+        String ssuStatus  = getProp("ssu.status");
+        String ssuSupport = getProp("ssu.support");
+        String ssuCount   = getProp("ssu.count");
+        String ssuError   = getProp("ssu.error");
+
+        String knox    = getProp("ro.boot.em.status");
+        String kg      = getProp("knox.kg.state");
+        String keytype = getProp("ro.security.keystore.keytype");
+
+        // Determine SSU display state
+        setSsuIndicator(model, soc, hardware, carrier, ssuSupport);
+
+        // Knox
+        String knoxResult;
+        if (knox.isEmpty()) {
+            knoxResult = "N/A";
+        } else if (knox.equals("0x0") || knox.equals("0")) {
+            knoxResult = "✅ " + knox;
+        } else {
+            knoxResult = "⚠️ " + knox;
+        }
+
+        String kgResult = kg.isEmpty() ? "N/A" : kg;
+
+        // Raw dump
+        StringBuilder sb = new StringBuilder();
+        appendRaw(sb, "ro.boot.carrierid",            carrier);
+        appendRaw(sb, "ro.soc.model",                 soc);
+        appendRaw(sb, "ro.hardware",                  hardware);
+        appendRaw(sb, "ssu.status",                   ssuStatus);
+        appendRaw(sb, "ssu.support",                  ssuSupport);
+        appendRaw(sb, "ssu.count",                    ssuCount);
+        appendRaw(sb, "ssu.error",                    ssuError);
+        appendRaw(sb, "ro.boot.em.status",            knox);
+        appendRaw(sb, "knox.kg.state",                kg);
+        appendRaw(sb, "ro.security.keystore.keytype", keytype);
+        rawDump = sb.toString().trim();
+
+        tvModel.setText     ("Model:       " + model);
+        tvSoc.setText       ("SoC:         " + orNA(soc));
+        tvHardware.setText  ("Hardware:    " + orNA(hardware));
+        tvCarrier.setText   ("Carrier ID:  " + orNA(carrier));
+        tvSsuStatus.setText ("ssu.status:  " + orNA(ssuStatus));
+        tvSsuSupport.setText("ssu.support: " + orNA(ssuSupport));
+        tvSsuCount.setText  ("ssu.count:   " + orNA(ssuCount));
+        tvSsuError.setText  ("ssu.error:   " + orNA(ssuError));
+        tvKnoxStatus.setText("Knox Status: " + knoxResult);
+        tvKgState.setText   ("KG State:    " + kgResult);
+        tvKeystore.setText  ("Key Type:    " + orNA(keytype));
+
+        cbRaw.setChecked(false);
+        rawLayout.setVisibility(View.GONE);
+        resultLayout.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Determine what to show in the big SSU indicator area.
+     * Priority order:
+     * 1. Unsupported chip (SM8350/8450/8550) → 🤔 not supported
+     * 2. ATT carrier + pre-S26 model + no ssu.support → 🤔 ATT not recognized
+     * 3. Global carrier (XAA/CHM/CHN/CHC) → ✅ Global Unlocked
+     * 4. ssu.support=1 → 🔒 SSU Locked
+     * 5. else → ✅ Global Unlocked
+     * + Exynos/MTK hardware warning shown separately
+     */
+    private void setSsuIndicator(String model, String soc, String hardware,
+                                  String carrier, String ssuSupport) {
+        // Check chip
+        String socUpper = soc.toUpperCase();
+        boolean isUnsupportedChip = UNSUPPORTED_CHIPS.contains(socUpper);
+
+        // Check ATT pre-S26
+        boolean isAtt = carrier.equalsIgnoreCase("ATT");
+        boolean isPreS26AttModel = false;
+        if (isAtt) {
+            String modelUpper = model.toUpperCase().replace("-", "").replace(" ", "");
+            for (String prefix : ATT_SSU_MODELS) {
+                if (modelUpper.contains(prefix)) {
+                    isPreS26AttModel = true;
+                    break;
+                }
+            }
+        }
+
+        // Check non-Qcom hardware
+        boolean isNonQcom = !hardware.equalsIgnoreCase("qcom") && !hardware.isEmpty();
+
+        // Determine big indicator
+        if (isUnsupportedChip) {
+            tvSsuBig.setText(getString(R.string.ssu_not_supported));
+            tvSsuBig.setTextColor(0xFFFFB300);
+            tvSsuBig.setBackgroundColor(0x22FFB300);
+        } else if (isAtt && isPreS26AttModel && ssuSupport.isEmpty()) {
+            tvSsuBig.setText(getString(R.string.ssu_att_not_recognized));
+            tvSsuBig.setTextColor(0xFFFFB300);
+            tvSsuBig.setBackgroundColor(0x22FFB300);
+        } else if (GLOBAL_CARRIERS.contains(carrier.toUpperCase())) {
+            tvSsuBig.setText(getString(R.string.ssu_unlocked));
+            tvSsuBig.setTextColor(0xFF3FB950);
+            tvSsuBig.setBackgroundColor(0x00000000);
+        } else if (ssuSupport.equals("1")) {
+            tvSsuBig.setText(getString(R.string.ssu_locked));
+            tvSsuBig.setTextColor(0xFFFF6B6B);
+            tvSsuBig.setBackgroundColor(0x22FF0000);
+        } else {
+            tvSsuBig.setText(getString(R.string.ssu_unlocked));
+            tvSsuBig.setTextColor(0xFF3FB950);
+            tvSsuBig.setBackgroundColor(0x00000000);
+        }
+
+        // Show Exynos/MTK warning if applicable
+        if (isNonQcom) {
+            tvSsuWarning.setText(getString(R.string.inaccurate_warning));
+            tvSsuWarning.setVisibility(View.VISIBLE);
+        } else {
+            tvSsuWarning.setVisibility(View.GONE);
+        }
     }
 
     private void showLangPicker() {
@@ -136,83 +270,6 @@ public class MainActivity extends AppCompatActivity {
             .setMessage(getString(R.string.guide_body))
             .setPositiveButton(getString(R.string.guide_close), null)
             .show();
-    }
-
-    private void runChecks() {
-        String model    = Build.MODEL + " (" + Build.DEVICE + ")";
-        String soc      = getProp("ro.soc.model");
-        String hardware = getProp("ro.hardware");
-        String carrier  = getProp("ro.boot.carrierid");
-
-        String ssuStatus  = getProp("ssu.status");
-        String ssuSupport = getProp("ssu.support");
-        String ssuCount   = getProp("ssu.count");
-        String ssuError   = getProp("ssu.error");
-
-        String knox    = getProp("ro.boot.em.status");
-        String kg      = getProp("knox.kg.state");
-        String keytype = getProp("ro.security.keystore.keytype");
-
-        // Carrier IDs that are always globally unlocked regardless of SSU
-        boolean isGlobalCarrier = carrier.equals("XAA") || carrier.equals("CHM")
-                || carrier.equals("CHN") || carrier.equals("CHC");
-
-        // SSU big indicator
-        if (isGlobalCarrier) {
-            tvSsuBig.setText("✅\nGlobal Unlocked");
-            tvSsuBig.setTextColor(0xFF3FB950);
-            tvSsuBig.setBackgroundColor(0x00000000);
-        } else if (ssuSupport.equals("1")) {
-            tvSsuBig.setText("🔒\nSSU Locked");
-            tvSsuBig.setTextColor(0xFFFF6B6B);
-            tvSsuBig.setBackgroundColor(0x22FF0000);
-        } else {
-            tvSsuBig.setText("✅\nGlobal Unlocked");
-            tvSsuBig.setTextColor(0xFF3FB950);
-            tvSsuBig.setBackgroundColor(0x00000000);
-        }
-
-        // Knox
-        String knoxResult;
-        if (knox.isEmpty()) {
-            knoxResult = "N/A";
-        } else if (knox.equals("0x0") || knox.equals("0")) {
-            knoxResult = "✅ " + knox;
-        } else {
-            knoxResult = "⚠️ " + knox;
-        }
-
-        String kgResult = kg.isEmpty() ? "N/A" : kg;
-
-        // Raw dump
-        StringBuilder sb = new StringBuilder();
-        appendRaw(sb, "ro.boot.carrierid",            carrier);
-        appendRaw(sb, "ro.soc.model",                 soc);
-        appendRaw(sb, "ro.hardware",                  hardware);
-        appendRaw(sb, "ssu.status",                   ssuStatus);
-        appendRaw(sb, "ssu.support",                  ssuSupport);
-        appendRaw(sb, "ssu.count",                    ssuCount);
-        appendRaw(sb, "ssu.error",                    ssuError);
-        appendRaw(sb, "ro.boot.em.status",            knox);
-        appendRaw(sb, "knox.kg.state",                kg);
-        appendRaw(sb, "ro.security.keystore.keytype", keytype);
-        rawDump = sb.toString().trim();
-
-        tvModel.setText     ("Model:       " + model);
-        tvSoc.setText       ("SoC:         " + orNA(soc));
-        tvHardware.setText  ("Hardware:    " + orNA(hardware));
-        tvCarrier.setText   ("Carrier ID:  " + orNA(carrier));
-        tvSsuStatus.setText ("ssu.status:  " + orNA(ssuStatus));
-        tvSsuSupport.setText("ssu.support: " + orNA(ssuSupport));
-        tvSsuCount.setText  ("ssu.count:   " + orNA(ssuCount));
-        tvSsuError.setText  ("ssu.error:   " + orNA(ssuError));
-        tvKnoxStatus.setText("Knox Status: " + knoxResult);
-        tvKgState.setText   ("KG State:    " + kgResult);
-        tvKeystore.setText  ("Key Type:    " + orNA(keytype));
-
-        cbRaw.setChecked(false);
-        rawLayout.setVisibility(View.GONE);
-        resultLayout.setVisibility(View.VISIBLE);
     }
 
     private void appendRaw(StringBuilder sb, String key, String val) {

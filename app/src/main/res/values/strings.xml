@@ -13,8 +13,15 @@
     <string name="raw_title">── RAW PROPS ──</string>
     <string name="footer">Props read via getprop · No root / ADB required</string>
 
+    <!-- SSU results -->
+    <string name="ssu_locked">🔒\nSSU Locked</string>
+    <string name="ssu_unlocked">✅\nGlobal Unlocked</string>
+    <string name="ssu_att_not_recognized">🤔\nATT Not Recognized</string>
+    <string name="ssu_not_supported">🤔\nCurrent device doesn\'t support SSU,\nyou need to insert the SIM card yourself</string>
+    <string name="inaccurate_warning">(Current result might be inaccurate because of Exynos or MTK)</string>
+
     <!-- Guide dialog -->
     <string name="guide_title">What is SSU?</string>
-    <string name="guide_body">SSU (Service Software Unlock) is Samsung\'s regional SIM lock temporary unlock mechanism, granted by Samsung to allow a locked device to use SIM cards from a supported region.\n\n⚠️ SSU is NOT permanent. Your device can be re-locked at any time — after an OTA update, factory reset, or remote revocation by Samsung.\n\nSSU only works with SIM cards from the region where the unlock was signed. Using a SIM from an unsupported region may still be blocked.\n\n✅ No SSU means your device has no regional SIM lock — it can be freely used with any compatible SIM card.</string>
+    <string name="guide_body">SSU (Service Software Unlock) is Samsung\'s regional SIM lock temporary unlock mechanism, granted by Samsung to allow a locked device to use SIM cards from a supported region.\n\n⚠️ SSU is NOT permanent. Your device can be re-locked at any time — after an OTA update, factory reset, or remote revocation by Samsung.\n\nSSU only works with SIM cards from the region where the unlock was signed. Using a SIM from an unsupported region may still be blocked.\n\n✅ No SSU / Global Unlocked means your device has no regional SIM lock — it can be freely used with any compatible SIM card.\n\n━━━━━━━━━━━━━━━━━━━━\n📱 ATT (AT&amp;T) Devices — S25 and Earlier\n\nFor Samsung devices with Carrier ID = ATT on models before S26 series (e.g. S25, S24, S23...), SSU does not apply. These devices use a different carrier lock mechanism. If you see \"ATT Not Recognized\", you need to check your unlock status manually through AT&amp;T or Samsung.\n\n━━━━━━━━━━━━━━━━━━━━\n🔬 Chip Accuracy Notice\n\nThis app\'s SSU detection is accurate for devices with Snapdragon 8 Gen 4 (SM8650) and newer chips.\n\nFor older chips (SM8350, SM8450, SM8550), SSU props may not be present even if the device is locked — you need to insert a foreign SIM card to check manually.\n\nOther chipsets (Exynos, MediaTek) may show inaccurate results. The result will include a warning when this is detected.</string>
     <string name="guide_close">Got it</string>
 </resources>
