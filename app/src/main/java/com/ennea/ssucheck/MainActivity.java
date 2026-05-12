@@ -26,13 +26,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREF_NAME = "settings";
     private static final String PREF_LANG = "language";
 
-    // Carrier IDs that are always globally unlocked
-    private static final Set<String> GLOBAL_CARRIERS = new HashSet<>(Arrays.asList(
-            "XAA", "CHM", "CHN", "CHC"
-    ));
-
-    // Chips that do not support SSU prop detection
-    private static final Set<String> UNSUPPORTED_CHIPS = new HashSet<>(Arrays.asList(
+    // Chips with potentially inaccurate SSU detection
+    private static final Set<String> INACCURATE_CHIPS = new HashSet<>(Arrays.asList(
             "SM8350", "SM8450", "SM8550"
     ));
 
@@ -112,8 +107,7 @@ public class MainActivity extends AppCompatActivity {
         String kg      = getProp("knox.kg.state");
         String keytype = getProp("ro.security.keystore.keytype");
 
-        // Determine SSU display state
-        setSsuIndicator(model, soc, hardware, carrier, ssuSupport);
+        setSsuIndicator(model, soc, hardware, carrier, ssuStatus, ssuSupport);
 
         // Knox
         String knoxResult;
@@ -127,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
 
         String kgResult = kg.isEmpty() ? "N/A" : kg;
 
-        // Raw dump
         StringBuilder sb = new StringBuilder();
         appendRaw(sb, "ro.boot.carrierid",            carrier);
         appendRaw(sb, "ro.soc.model",                 soc);
@@ -159,67 +152,83 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Determine what to show in the big SSU indicator area.
-     * Priority order:
-     * 1. Unsupported chip (SM8350/8450/8550) → 🤔 not supported
-     * 2. ATT carrier + pre-S26 model + no ssu.support → 🤔 ATT not recognized
-     * 3. Global carrier (XAA/CHM/CHN/CHC) → ✅ Global Unlocked
-     * 4. ssu.support=1 → 🔒 SSU Locked
-     * 5. else → ✅ Global Unlocked
-     * + Exynos/MTK hardware warning shown separately
+     * SSU status logic:
+     *
+     * ssu.status=temp_unlock + ssu.support=1  → 😓 Official Temporary (Travel) Unlock
+     * ssu.status=perm_unlock + ssu.support=1  → ✅ Global Unlocked (Official Permanent Unlock)
+     * ssu.status=lock        + ssu.support=1  → 🔒 Locked (not SSU, carrier/region lock)
+     * ssu.status=default     (any support)    → 🔒 SSU Locked
+     * ssu.status=empty + ssu.support=empty    → ✅ Global Unlocked
+     * other                                   → ✅ Global Unlocked
+     *
+     * ATT pre-S26 + no ssu.support            → 🤔 ATT Not Recognized
+     *
+     * If chip is SM8350/SM8450/SM8550 or hardware != qcom:
+     *   Show same result but append 🤔 + accuracy warning in parentheses
      */
     private void setSsuIndicator(String model, String soc, String hardware,
-                                  String carrier, String ssuSupport) {
-        // Check chip
-        String socUpper = soc.toUpperCase();
-        boolean isUnsupportedChip = UNSUPPORTED_CHIPS.contains(socUpper);
+                                  String carrier, String ssuStatus, String ssuSupport) {
+        // Check accuracy
+        boolean isInaccurate = INACCURATE_CHIPS.contains(soc.toUpperCase())
+                || (!hardware.equalsIgnoreCase("qcom") && !hardware.isEmpty());
+        String warning = isInaccurate ? "\n🤔 " + getString(R.string.inaccurate_warning) : "";
 
-        // Check ATT pre-S26
+        // ATT pre-S26 check
         boolean isAtt = carrier.equalsIgnoreCase("ATT");
-        boolean isPreS26AttModel = false;
-        if (isAtt) {
-            String modelUpper = model.toUpperCase().replace("-", "").replace(" ", "");
+        if (isAtt && ssuSupport.isEmpty()) {
+            String modelUp = model.toUpperCase().replace("-", "").replace(" ", "");
             for (String prefix : ATT_SSU_MODELS) {
-                if (modelUpper.contains(prefix)) {
-                    isPreS26AttModel = true;
-                    break;
+                if (modelUp.contains(prefix)) {
+                    tvSsuBig.setText(getString(R.string.ssu_att_not_recognized) + warning);
+                    tvSsuBig.setTextColor(0xFFFFB300);
+                    tvSsuBig.setBackgroundColor(0x22FFB300);
+                    tvSsuWarning.setVisibility(View.GONE);
+                    return;
                 }
             }
         }
 
-        // Check non-Qcom hardware
-        boolean isNonQcom = !hardware.equalsIgnoreCase("qcom") && !hardware.isEmpty();
+        // Main SSU logic based on ssu.status
+        switch (ssuStatus) {
+            case "perm_unlock":
+                tvSsuBig.setText(getString(R.string.ssu_perm_unlock) + warning);
+                tvSsuBig.setTextColor(0xFF3FB950);
+                tvSsuBig.setBackgroundColor(0x00000000);
+                break;
 
-        // Determine big indicator
-        if (isUnsupportedChip) {
-            tvSsuBig.setText(getString(R.string.ssu_not_supported));
-            tvSsuBig.setTextColor(0xFFFFB300);
-            tvSsuBig.setBackgroundColor(0x22FFB300);
-        } else if (isAtt && isPreS26AttModel && ssuSupport.isEmpty()) {
-            tvSsuBig.setText(getString(R.string.ssu_att_not_recognized));
-            tvSsuBig.setTextColor(0xFFFFB300);
-            tvSsuBig.setBackgroundColor(0x22FFB300);
-        } else if (GLOBAL_CARRIERS.contains(carrier.toUpperCase())) {
-            tvSsuBig.setText(getString(R.string.ssu_unlocked));
-            tvSsuBig.setTextColor(0xFF3FB950);
-            tvSsuBig.setBackgroundColor(0x00000000);
-        } else if (ssuSupport.equals("1")) {
-            tvSsuBig.setText(getString(R.string.ssu_locked));
-            tvSsuBig.setTextColor(0xFFFF6B6B);
-            tvSsuBig.setBackgroundColor(0x22FF0000);
-        } else {
-            tvSsuBig.setText(getString(R.string.ssu_unlocked));
-            tvSsuBig.setTextColor(0xFF3FB950);
-            tvSsuBig.setBackgroundColor(0x00000000);
+            case "temp_unlock":
+                tvSsuBig.setText(getString(R.string.ssu_temp_unlock) + warning);
+                tvSsuBig.setTextColor(0xFFFFB300);
+                tvSsuBig.setBackgroundColor(0x22FFB300);
+                break;
+
+            case "lock":
+                tvSsuBig.setText(getString(R.string.ssu_hard_locked) + warning);
+                tvSsuBig.setTextColor(0xFFFF6B6B);
+                tvSsuBig.setBackgroundColor(0x22FF0000);
+                break;
+
+            case "default":
+                tvSsuBig.setText(getString(R.string.ssu_locked) + warning);
+                tvSsuBig.setTextColor(0xFFFF6B6B);
+                tvSsuBig.setBackgroundColor(0x22FF0000);
+                break;
+
+            default:
+                // Empty or unknown → check ssu.support
+                if ("1".equals(ssuSupport)) {
+                    tvSsuBig.setText(getString(R.string.ssu_locked) + warning);
+                    tvSsuBig.setTextColor(0xFFFF6B6B);
+                    tvSsuBig.setBackgroundColor(0x22FF0000);
+                } else {
+                    tvSsuBig.setText(getString(R.string.ssu_unlocked) + warning);
+                    tvSsuBig.setTextColor(0xFF3FB950);
+                    tvSsuBig.setBackgroundColor(0x00000000);
+                }
+                break;
         }
 
-        // Show Exynos/MTK warning if applicable
-        if (isNonQcom) {
-            tvSsuWarning.setText(getString(R.string.inaccurate_warning));
-            tvSsuWarning.setVisibility(View.VISIBLE);
-        } else {
-            tvSsuWarning.setVisibility(View.GONE);
-        }
+        tvSsuWarning.setVisibility(View.GONE);
     }
 
     private void showLangPicker() {

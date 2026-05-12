@@ -4,8 +4,6 @@
     <string name="btn_check">检测</string>
     <string name="btn_github">GitHub</string>
     <string name="btn_guide">说明</string>
-    <string name="lang_english">English</string>
-    <string name="lang_chinese">简体中文</string>
     <string name="section_device">设备信息</string>
     <string name="section_ssu">SSU</string>
     <string name="section_knox">KNOX</string>
@@ -13,15 +11,17 @@
     <string name="raw_title">── 原始 PROPS ──</string>
     <string name="footer">通过 getprop 读取系统属性 · 无需 Root / ADB</string>
 
-    <!-- SSU results -->
-    <string name="ssu_locked">🔒\nSSU 已锁定</string>
+    <!-- SSU result strings -->
     <string name="ssu_unlocked">✅\n全球无锁</string>
+    <string name="ssu_perm_unlock">✅\n全球无锁\n（官方永久解锁）</string>
+    <string name="ssu_temp_unlock">😓\n官方旅游临时解锁</string>
+    <string name="ssu_locked">🔒\nSSU 已锁定</string>
+    <string name="ssu_hard_locked">🔒\n已锁定\n（运营商/区域锁，非 SSU）</string>
     <string name="ssu_att_not_recognized">🤔\nATT 无法识别</string>
-    <string name="ssu_not_supported">🤔\n当前设备不支持 SSU 检测，\n请自行插入 SIM 卡验证</string>
-    <string name="inaccurate_warning">（当前结果可能不准确，因为该设备使用 Exynos 或 MTK 芯片）</string>
+    <string name="inaccurate_warning">（结果可能不准确——请自行插入外国 SIM 卡验证）</string>
 
-    <!-- Guide dialog -->
+    <!-- Guide -->
     <string name="guide_title">什么是 SSU？</string>
-    <string name="guide_body">SSU（Service Software Unlock，服务软件解锁）是三星的区域 SIM 卡锁临时解锁机制，由三星授权，允许锁定至特定运营商或地区的设备使用受支持地区的 SIM 卡。\n\n⚠️ SSU 不是永久解锁。设备随时可能被重新锁定——系统更新、恢复出厂设置或三星远程撤销授权后均会触发。\n\nSSU 仅允许使用解锁时签名所对应地区的 SIM 卡，使用不受支持地区的 SIM 卡仍可能被拒绝。\n\n✅ No SSU / 全球无锁 表示设备没有区域 SIM 卡锁，可自由使用任何兼容的 SIM 卡。\n\n━━━━━━━━━━━━━━━━━━━━\n📱 ATT（AT&amp;T）机型 — S25 及更早\n\n对于运营商 ID 为 ATT、型号在 S26 系列之前的三星设备（如 S25、S24、S23 等），SSU 机制不适用。这些设备使用不同的运营商锁定方式。如果显示"ATT 无法识别"，请通过 AT&amp;T 或三星官方渠道手动查询解锁状态。\n\n━━━━━━━━━━━━━━━━━━━━\n🔬 芯片准确性说明\n\n本 App 的 SSU 检测对搭载骁龙 8 Gen 4（SM8650）及更新芯片的设备是准确的。\n\n对于旧芯片（SM8350、SM8450、SM8550），即使设备已锁定，SSU 相关属性也可能不存在——需要自行插入外国 SIM 卡验证。\n\n其他芯片组（Exynos、联发科 MTK）可能显示不准确的结果，检测到时会显示相应警告。</string>
+    <string name="guide_body">SSU（Service Software Unlock，服务软件解锁）是三星的区域 SIM 卡锁临时解锁机制，由三星授权，允许锁定至特定运营商或地区的设备使用受支持地区的 SIM 卡。\n\n⚠️ SSU 不是永久解锁。设备随时可能被重新锁定——系统更新、恢复出厂设置或三星远程撤销授权后均会触发。\n\n━━━━━━━━━━━━━━━━━━━━\n📊 状态说明\n\n✅ 全球无锁 — 无 SIM 锁，可使用任何兼容 SIM 卡。\n\n✅ 全球无锁（官方永久解锁）— ssu.status=perm_unlock，三星已永久解锁此设备。\n\n😓 官方旅游临时解锁 — ssu.status=temp_unlock，三星授予临时旅游解锁，期限结束后可能重新锁定。\n\n🔒 SSU 已锁定 — ssu.status=default，设备通过 SSU 机制处于锁定状态。\n\n🔒 已锁定（运营商/区域锁，非 SSU）— ssu.status=lock，设备通过非 SSU 的运营商或区域锁定方式锁定。\n\n━━━━━━━━━━━━━━━━━━━━\n📱 ATT 机型 — S25 及更早\n\n对于 AT&amp;T 设备（S931、S936、S937、S938、F766、F966 系列）S26 之前的型号，SSU 机制不适用，请直接通过 AT&amp;T 或三星官方渠道查询解锁状态。\n\n━━━━━━━━━━━━━━━━━━━━\n🔬 芯片准确性\n\n✅ 准确：SM8650（骁龙 8 Gen 4）及更新芯片。\n\n⚠️ 可能不准确：SM8350、SM8450、SM8550 及非高通芯片（Exynos、联发科 MTK）——结果会显示 🤔 警告，请自行插入外国 SIM 卡验证。</string>
     <string name="guide_close">知道了</string>
 </resources>

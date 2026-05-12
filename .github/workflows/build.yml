@@ -40,7 +40,7 @@ jobs:
           PROPS
 
       - name: Build release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --info 2>&1 | tee build.log; grep -E 'error:|What went wrong|Exception|FAILED' build.log | head -30 || true
 
       - name: Find APK
         id: find_apk
