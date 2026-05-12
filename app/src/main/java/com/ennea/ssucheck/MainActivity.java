@@ -153,10 +153,16 @@ public class MainActivity extends AppCompatActivity {
         String kg      = getProp("knox.kg.state");
         String keytype = getProp("ro.security.keystore.keytype");
 
+        // Carrier IDs that are always globally unlocked regardless of SSU
+        boolean isGlobalCarrier = carrier.equals("XAA") || carrier.equals("CHM")
+                || carrier.equals("CHN") || carrier.equals("CHC");
+
         // SSU big indicator
-        // ssu.support=1 → device has SSU lock → Locked
-        // ssu.support empty/missing → Global Unlocked
-        if (ssuSupport.equals("1")) {
+        if (isGlobalCarrier) {
+            tvSsuBig.setText("✅\nGlobal Unlocked");
+            tvSsuBig.setTextColor(0xFF3FB950);
+            tvSsuBig.setBackgroundColor(0x00000000);
+        } else if (ssuSupport.equals("1")) {
             tvSsuBig.setText("🔒\nSSU Locked");
             tvSsuBig.setTextColor(0xFFFF6B6B);
             tvSsuBig.setBackgroundColor(0x22FF0000);
